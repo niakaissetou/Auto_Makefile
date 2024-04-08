@@ -1,0 +1,108 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+  exit 84
+fi
+
+if [ ! -f "$1" ]; then
+  exit 84
+fi
+
+if [ ! -s "$1" ]; then
+    exit 84
+fi
+
+output="Makefile"
+config_file="$1"
+
+CCOMP=$(gawk -F ";" '$1=="CC" { print $2 }' "$config_file")
+HEADERS=$(gawk -F ";" '$1=="HEADERS_DIR" { print $2 }' "$config_file")
+PROJECT_DIR=$(gawk -F ";" '$1=="PROJECT_DIR" { print $2 }' "$config_file")
+SRC_DIR=$(gawk -F ";" '$1=="SOURCES_DIR" { print $2 }' "$config_file")
+BACKUP=$(gawk -F ";" '$1=="BCK_DIR" { print $2 }' "$config_file")
+LIB=$(gawk -F ";" '$1=="LIBS_DIR" { print $2 }' "$config_file")
+BIN=$(gawk -F ";" '$1=="EXEC" { print $2 }' "$config_file")
+ZIP=$(gawk -F ";" '$1=="ZIP" { print $2 }' "$config_file")
+ZIP_FLAG=$(gawk -F ";" '$1=="ZIPFLAGS" { print $2 }' "$config_file")
+UNZIP=$(gawk -F ";" '$1=="UNZIP" { print $2 }' "$config_file")
+UNZIP_FLAG=$(gawk -F ";" '$1=="UNZIPFLAGS" { print $2 }' "$config_file")
+CFLAGS=$(gawk -F ";" '$1=="CFLAGS" { print $2 }' "$config_file")
+CPPFLAGS=$(gawk -F ";" '$1=="CPPFLAGS" { print $2 }' "$config_file")
+LD=$(gawk -F ";" '$1=="LDFLAGS" { print $2 }' "$config_file")
+VERSION="$ -r"
+
+if [ -z "$PROJECT_DIR" ]; then
+    exit 84
+    fi
+
+if [ -z "$CCOMP" ]; then
+    CCOMP="gcc"
+    fi
+
+echo -e "
+NAME = $BIN
+
+RM   = rm -f
+
+CC = $CCOMP
+
+SRCDIR = $SRC_DIR
+
+CFLAGS = $CFLAGS
+
+CPPFLAGS = $CPPFLAGS
+
+HEADERSDIR = $HEADERS
+
+LIBSDIR = $LIB
+
+PROJECT_DIR = $PROJECT_DIR
+
+BCKDIR = $BACKUP
+
+ZIP = $ZIP
+
+ZIPFLAGS = $ZIP_FLAG
+
+UNZIP = $UNZIP
+
+UNZIPFLAGS = $UNZIP_FLAG
+
+LDFLAGS = $LD
+
+SRC = \$(wildcard \$(SRCDIR)/*.c)
+
+OBJ = \$(SRC:.c=.o)
+
+HEADERSif = \$(wildcard \$(HEADERSDIR)/*.h)
+
+all: \$(NAME)
+
+\$(NAME): \$(OBJ)
+	\$(CC) -o \$(NAME) \$(OBJ) \$(CFLAGS) \$(LDFLAGS) \$(CPPFLAGS)
+
+clean:
+	\$(RM) \$(OBJ) \$(TARGET)
+
+fclean: clean
+	\$(RM) \$(NAME)
+
+re: fclean all
+
+archive:
+	\$(ZIP) \$(ZIPFLAGS) \$(BCKDIR)/src_backup.tar \$(SRCDIR)/*.c
+	@echo -e "src_backup.zip file generated.\n"
+
+revert:
+	\$(UNZIP) \$(UNZIPFLAGS) \$(BCKDIR)/src_backup.tar
+
+num:
+\t@echo '"${BASH_VERSION}"'
+
+delete:
+\trm \$(BCKDIR)/src_backup.tar
+
+.PHONY: all clean fclean re archive delete" > "$output"
+
+chmod +x "Makefile"
+mv "Makefile" "$PROJECT_DIR"
